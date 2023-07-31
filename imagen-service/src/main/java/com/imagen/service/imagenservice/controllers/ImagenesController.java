@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.imagen.service.imagenservice.dto.BaseGetOneImageDto;
+import com.imagen.service.imagenservice.dto.razaDto.RazaSaveDto;
 import com.imagen.service.imagenservice.services.MascotaService;
 import com.imagen.service.imagenservice.services.RazaService;
 
@@ -31,6 +32,17 @@ public class ImagenesController {
         BaseGetOneImageDto imageReturn = new BaseGetOneImageDto();
         if("raza".equals(servicio)){
             imageReturn = razaImageService.findOneImage(id);
+        } else if("mascota".equals(servicio)){
+            imageReturn = mascotaImageService.findOneImage(id);
+        }
+        return new ResponseEntity<>(imageReturn, HttpStatus.OK);
+    }
+
+    @PostMapping("/one/{servicio}")
+    public ResponseEntity<BaseGetOneImageDto> update(@ModelAttribute RazaSaveDto raza, @PathVariable String servicio) {
+        BaseGetOneImageDto imageReturn = new BaseGetOneImageDto();
+        if("raza".equals(servicio)){
+            imageReturn = razaImageService.update(raza);
         }
         return new ResponseEntity<>(imageReturn, HttpStatus.OK);
     }

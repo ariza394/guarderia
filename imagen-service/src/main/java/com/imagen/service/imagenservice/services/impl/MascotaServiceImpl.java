@@ -85,5 +85,14 @@ public class MascotaServiceImpl implements MascotaService{
 
         return mascotaReturnDto;
     }
+
+
+
+    @Override
+    public BaseGetOneImageDto findOneImage(Long id) {
+        Mascota mascota = repository.findById(id).get();
+        BaseGetOneImageDto oneImage = modelMapper.map(mascota,BaseGetOneImageDto.class);
+        return oneImage;
+    }
     
 }

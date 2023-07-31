@@ -41,6 +41,13 @@ public class StorageService {
         return "https://javaciaofilles.s3.us-east-1.amazonaws.com/" + filePath;
     }
 
+    public String deleteFile(String fileName) {
+        //elimina anterior
+        String relativePath = fileName.substring(fileName.indexOf(".com/") + ".com/".length());
+        s3Client.deleteObject(bucketName,relativePath);
+        return fileName + " removed ...";
+    }
+
 
     private File convertMultiPartFileToFile(MultipartFile file) {
         File convertedFile = new File(file.getOriginalFilename());

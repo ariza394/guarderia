@@ -29,7 +29,7 @@ public class MascotaController {
     private MascotaService service;
 
     @GetMapping
-    public List<MascotaApiGetIdDto> list(){
+    public List<MascotasApiByUserDto> list(){
         return service.findAll();
     }
 
@@ -45,7 +45,7 @@ public class MascotaController {
 
     @PostMapping("/update/perfil/{id}")
     public ResponseEntity<MascotaBaseDto> updatePerfil(
-    @RequestParam("imagen") String imagen,
+    @RequestParam("imagen") Long imagen,
     @PathVariable Long id
     ) {
         MascotaBaseDto response = service.updatePerfilImage(imagen, id);

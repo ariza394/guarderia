@@ -14,4 +14,5 @@ import lombok.Setter;
 @Setter
 public class RazaSavedDto extends RazaBaseDto{
     private MultipartFile imagenPerfil;
+    private Long imagenId;
 }

@@ -1,5 +1,7 @@
 package com.imagen.service.imagenservice.services.impl;
 
+import java.util.Optional;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,10 +47,36 @@ public class RazaServiceImpl implements RazaService{
 
 
     @Override
+    public BaseGetOneImageDto update(RazaSaveDto razaSaveDto) {
+        Optional <Raza> Optionalraza = repository.findById(razaSaveDto.getId());
+        
+        if(Optionalraza.isPresent()){
+            Raza razaDb = Optionalraza.get();
+            
+            //elimina imagen
+            serviceStorage.deleteFile(razaDb.getImagen());
+            
+            MultipartFile imagenPerfil = razaSaveDto.getArchivosAdjuntos().get(0);
+            String filePath = serviceStorage.uploadFile(imagenPerfil, "razas");
+
+            razaDb.setIdRaza(razaSaveDto.getIdRaza());
+            razaDb.setImagen(filePath);
+            repository.save(razaDb);
+
+
+            BaseGetOneImageDto baseGetOneImageDto = modelMapper.map(razaDb, BaseGetOneImageDto.class);
+            return baseGetOneImageDto;
+        }
+        else {
+            return null;
+        }
+
+    }
+
+
+    @Override
     public BaseGetOneImageDto findOneImage(Long id) {
         Raza raza = repository.findById(id).get();
-        System.out.println("Valor de raza: " + raza.getImagen());
-
         BaseGetOneImageDto oneImage = modelMapper.map(raza,BaseGetOneImageDto.class);
         return oneImage;
     }

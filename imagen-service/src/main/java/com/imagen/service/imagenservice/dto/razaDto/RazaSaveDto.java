@@ -12,5 +12,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RazaSaveDto extends BaseSaveDto{
+    private Long id;
     private Long idRaza;
 }

@@ -13,6 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class MascotaBaseDto {
+    private Long id;
     private String nombre;
     private LocalDate fechaNacimiento;
     private String cuidados;

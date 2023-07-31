@@ -10,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RazaBaseDto {
+    private Long id;
     private String raza;
     private String subRaza;
     private String imagen;

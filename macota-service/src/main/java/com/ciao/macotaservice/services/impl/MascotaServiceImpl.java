@@ -1,6 +1,8 @@
 package com.ciao.macotaservice.services.impl;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.ciao.macotaservice.dto.imagenOneDto.ImagenOneDto;
@@ -16,6 +18,7 @@ import com.ciao.macotaservice.models.Raza;
 import com.ciao.macotaservice.repositories.MascotaRepository;
 import com.ciao.macotaservice.repositories.RazaRepository;
 import com.ciao.macotaservice.services.MascotaService;
+import com.ciao.macotaservice.utilities.RestApiClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +28,6 @@ import lombok.AllArgsConstructor;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
-@AllArgsConstructor
 public class MascotaServiceImpl implements MascotaService{
     
     @Autowired
@@ -33,6 +35,24 @@ public class MascotaServiceImpl implements MascotaService{
     private RazaRepository razaRepository;
     private WebClient webClient;
     private ModelMapper modelMapper;
+    private final RestApiClient restApiClientImages;
+    private final RestApiClient restApiClientUser;
+
+
+    public MascotaServiceImpl(MascotaRepository repository, RazaRepository razaRepository, WebClient webClient,
+            ModelMapper modelMapper,@Qualifier("restApiClientImages") RestApiClient restApiClientImages, 
+             @Qualifier("restApiClientUsers") RestApiClient restApiClientUser) {
+        this.repository = repository;
+        this.razaRepository = razaRepository;
+        this.webClient = webClient;
+        this.modelMapper = modelMapper;
+        this.restApiClientImages = restApiClientImages;
+        this.restApiClientUser = restApiClientUser;
+    }
+
+
+
+
 
     @Override
     public MascotaApiGetIdDto findById(Long id) {
@@ -43,22 +63,67 @@ public class MascotaServiceImpl implements MascotaService{
         .bodyToMono(UserDto.class)
         .block();
         
-        MascotaBaseDto mascotaBaseDto = modelMapper.map(mascota,MascotaBaseDto.class);
+
+        
+        //objto Mascota
+        MascotaBaseGetDto mascotaBaseGetDto = modelMapper.map(mascota,MascotaBaseGetDto.class);
+        
+        //setea imagen
+        ImagenOneDto imagenOneDto = restApiClientImages.get("/imagenes/one/" + mascota.getImagenPerfilId() + "/mascota", ImagenOneDto.class);
+
+        mascotaBaseGetDto.setImagenPerfil(imagenOneDto.getImagen());
+        
+        // setea raza
+        RazaBaseDto razaBaseDto = modelMapper.map(mascota.getIdRaza(), RazaBaseDto.class);
+        mascotaBaseGetDto.setRaza(razaBaseDto);
+
+
         MascotaApiGetIdDto mascotaApiGetIdDto = new MascotaApiGetIdDto();
-        mascotaApiGetIdDto.setMascota(mascotaBaseDto);
+        mascotaApiGetIdDto.setMascota(mascotaBaseGetDto);
+        mascotaApiGetIdDto.setUser(userDto);
+
+        
         mascotaApiGetIdDto.setUser(userDto);
 
         return mascotaApiGetIdDto;  
     }
 
     @Override
-    public List<MascotaApiGetIdDto> findAll() {
-        List<MascotaApiGetIdDto> mascotas = new ArrayList<>();
-        repository.findAll().forEach(mascota -> {
-            MascotaApiGetIdDto mascotaDto = this.findById(mascota.getId());
-            mascotas.add(mascotaDto);
+    public List<MascotasApiByUserDto> findAll() {
+
+        // traemos todos los usuarios
+        List<UserDto> usersDto = webClient.get().uri("http://localhost:8080/users")
+        .retrieve()
+        .bodyToFlux(UserDto.class)
+        .collectList()
+        .block();
+
+        //iniciamos objeto de devolucion
+        List<MascotasApiByUserDto> allMascotasByUser = new ArrayList<>();
+
+        usersDto.forEach(user -> {
+            MascotasApiByUserDto mascotasApiByUserDto = new MascotasApiByUserDto();
+
+            // Obtener todas las mascotas del usuario con el id especificado
+            List<Mascota> mascotas = repository.findAllByUserId(user.getId());
+
+            //se guardan las mascotas
+            List<MascotaBaseDto> mascotasDto = new ArrayList<>();
+
+            // Mapear las mascotas a DTO
+            for (Mascota mascota : mascotas) {
+                MascotaBaseDto mascotaDto = modelMapper.map(mascota, MascotaBaseDto.class);
+                mascotasDto.add(mascotaDto);
+            }
+
+            // seteamos el objeto mascotasApiByUserDto para agregarlo al array
+            mascotasApiByUserDto.setMascota(mascotasDto);
+            mascotasApiByUserDto.setUser(user);
+
+            allMascotasByUser.add(mascotasApiByUserDto);
         });
-        return mascotas;
+
+        return allMascotasByUser;
     }
 
     @Override
@@ -90,9 +155,9 @@ public class MascotaServiceImpl implements MascotaService{
     }
 
     @Override
-    public MascotaBaseDto updatePerfilImage(String imagen, Long id) {
+    public MascotaBaseDto updatePerfilImage(Long imagen, Long id) {
         Mascota mascota = repository.findById(id).get();
-        // mascota.se(imagen);
+        mascota.setImagenPerfilId(imagen);
         repository.save(mascota);
         MascotaBaseDto mascotaBaseDto = modelMapper.map(mascota,MascotaBaseDto.class);
         return mascotaBaseDto;
@@ -102,7 +167,6 @@ public class MascotaServiceImpl implements MascotaService{
     public MascotaBaseGetDto save(MascotaSaveDto mascotaSaveDto) {
         Mascota mascota = modelMapper.map(mascotaSaveDto, Mascota.class);
         repository.save(mascota);
-        System.out.println("la razaa de id************");
         Raza raza = razaRepository.findById(mascotaSaveDto.getIdRaza()).get();
         // Obtiene imagen de la mascota
         ImagenOneDto imagen = webClient.get()
